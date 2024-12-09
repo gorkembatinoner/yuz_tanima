@@ -1,0 +1,16 @@
+{
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "driver": "MySQL",
+            "connectString": "mysql://<gorkemm>:<sifre123>@<185.202.240.187>:<3306>/<FaceRecognitionDB>",
+            "name": "deneme",
+            "group": "deneme"
+        }
+    ]
+}
