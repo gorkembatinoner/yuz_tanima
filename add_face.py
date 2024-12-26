@@ -3,6 +3,7 @@ import numpy as np
 import os
 from database_operations import add_face_to_database  # Doğru modülü içeri aktar
 
+
 # Fotoğrafı yükleyip encoding verisini çıkarma fonksiyonu
 def process_and_add_face(image_path):
     # Fotoğrafı yükle

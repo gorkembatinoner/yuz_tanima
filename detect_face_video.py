@@ -1,8 +1,11 @@
+# main.py
 import cv2
 import face_recognition
 import threading
 import numpy as np
 from database_operations import load_faces_from_database
+from emotion_detection import detect_expression_and_liveness
+import time
 
 # Veritabanından yüz verilerini yükle
 known_face_encodings, known_face_names = load_faces_from_database()
@@ -21,9 +24,8 @@ frames_to_keep_faces = 5
 face_holding_frames = 0
 lock = threading.Lock()
 
-# Haar Cascade dosyalarını yükle
+# Haar Cascade dosyasını yükle
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-smile_cascade = cv2.CascadeClassifier('haarcascade_smile.xml')
 eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 
 def process_frame(frame):
@@ -49,36 +51,6 @@ def process_frame(frame):
         last_face_names = face_names
         face_holding_frames = 0
 
-def detect_expression(gray_roi, color_frame, x, y, w, h):
-    smiles = smile_cascade.detectMultiScale(gray_roi, scaleFactor=1.8, minNeighbors=20, minSize=(25, 25))
-    eyes = eye_cascade.detectMultiScale(gray_roi)
-
-    # Gözleri filtrele: Belirli bir oran içinde kalanları seç
-    filtered_eyes = []
-    for (ex, ey, ew, eh) in eyes:
-        if eh > h * 0.2 and ew > w * 0.2:  # Göz boyutları yüz boyutuna göre anlamlı olmalı
-            filtered_eyes.append((ex, ey, ew, eh))
-
-    expression = "Notr"  # Varsayılan ifade
-
-    # Mutlu ifade kontrolü
-    if len(smiles) > 2:
-        expression = "Mutlu"
-    # Sinirli ifade kontrolü (örneğin, kaşların ve gözlerin durumu)
-    elif len(filtered_eyes) == 0:
-        # Basit bir sinirli ifade kontrolü
-        expression = "Sinirli"
-    # Şaşkın ifade kontrolü
-    elif len(filtered_eyes) >= 2 and len(smiles) == 0:
-        expression = "Saskin"
-
-    # İfade yazısını ekle
-    cv2.putText(color_frame, expression, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
-
-    # Filtrelenmiş gözleri çerçevele
-    for (ex, ey, ew, eh) in filtered_eyes:
-        cv2.rectangle(color_frame[y:y + h, x:x + w], (ex, ey), (ex + ew, ey + eh), (0, 0, 255), 2)
-
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -102,19 +74,19 @@ while True:
             bottom = int(bottom / resize_factor)
             left = int(left / resize_factor)
 
-            # Yüz etrafına dikdörtgen
+            # Yüz etrafına dikdörtgen çiz
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
             cv2.putText(frame, name, (left, bottom + 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
-            # Yüz bölgesini griye dönüştür ve ifade tespitini yap
-            face_roi = frame[top:bottom, left:right]
-            gray_roi = cv2.cvtColor(face_roi, cv2.COLOR_BGR2GRAY)
-            detect_expression(gray_roi, frame, left, top, right - left, bottom - top)
+            # Yüz bölgesini griye dönüştür ve ifade tespiti yap
+            gray_roi = cv2.cvtColor(frame[top:bottom, left:right], cv2.COLOR_BGR2GRAY)
+            detect_expression_and_liveness(gray_roi, frame, left, top, right - left, bottom - top, eye_cascade)
 
     cv2.imshow("Face Recognition", frame)
     if cv2.waitKey(1) & 0xFF == 27:
         break    
+
     frame_counter += 1
-#a
+
 cap.release()
 cv2.destroyAllWindows()
